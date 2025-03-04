@@ -45,7 +45,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
-    // Robust body parsing
+    // Robust body parsing on what i don't know
     const body = typeof req.body === 'string' 
       ? JSON.parse(req.body) 
       : req.body;
