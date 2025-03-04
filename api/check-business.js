@@ -2,7 +2,7 @@ import fetch from 'node-fetch';
 
 export default async function handler(req, res) {
   // CORS Configuration
-  const ALLOWED_ORIGIN = 'https://idara.webflow.io/services/business-name-registration';
+  const ALLOWED_ORIGIN = '*';
 
   // Handle CORS Preflight
   res.setHeader('Access-Control-Allow-Credentials', 'true');
