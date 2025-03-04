@@ -3,7 +3,7 @@ const express = require('express')
 const app = express()
 const dotenv = require('dotenv')
 // .env in config
-dotenv.config({path: './config/.env'})
+dotenv.config()
 app.set('views', path.join(__dirname, 'views'));
 //Static Folder
 app.use(express.static("api"));
