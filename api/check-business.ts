@@ -1,6 +1,6 @@
 import fetch from 'node-fetch';
 
-export default async function handler(req, res) {
+export default async function handler(req: any, res: any) {
   // CORS Configuration
   const ALLOWED_ORIGIN = '*';
 
@@ -26,6 +26,24 @@ export default async function handler(req, res) {
   }
 
   try {
+    // Check for required environment variables
+    const complianceApiUrl = process.env.BN_COMPLIANCE_API_URL;
+    const complianceApiKey = process.env.BN_COMPLIANCE_API_KEY;
+
+    if (!complianceApiUrl) {
+      return res.status(500).json({ 
+        error: 'Server Configuration Error', 
+        message: 'Compliance API URL is not configured' 
+      });
+    }
+
+    if (!complianceApiKey) {
+      return res.status(500).json({ 
+        error: 'Server Configuration Error', 
+        message: 'Compliance API Key is not configured' 
+      });
+    }
+
     // Robust body parsing
     const body = typeof req.body === 'string' 
       ? JSON.parse(req.body) 
@@ -42,13 +60,13 @@ export default async function handler(req, res) {
     }
 
     // External API call
-    const apiResponse = await fetch(process.env.BN_COMPLIANCE_API_URL, {
+    const apiResponse = await fetch(complianceApiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': process.env.BN_COMPLIANCE_API_KEY,
+        'Authorization': complianceApiKey,
         'Accept': 'application/json',
-        'X_API_KEY': process.env.BN_COMPLIANCE_API_KEY
+        'X_API_KEY': complianceApiKey
       },
       body: JSON.stringify({
         proposedName: businessName,
@@ -66,8 +84,10 @@ export default async function handler(req, res) {
 
     return res.status(500).json({ 
       error: 'Internal Server Error', 
-      message: error.message,
-      ...(process.env.NODE_ENV === 'development' && { stack: error.stack })
+      message: error instanceof Error ? error.message : 'Unknown error occurred',
+      ...(process.env.NODE_ENV === 'development' && { 
+        stack: error instanceof Error ? error.stack : undefined 
+      })
     });
   }
 }
