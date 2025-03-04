@@ -2,45 +2,50 @@
 import fetch from 'node-fetch';
 
 export default async function handler(req, res) {
-  // Only allow POST requests
+  // Add CORS headers
+  res.setHeader('Access-Control-Allow-Credentials', true);
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
+
+  // Handle OPTIONS request (for CORS preflight)
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  // Only allow POST requests (but return a friendly message for GET)
+  if (req.method === 'GET') {
+    return res.status(200).json({ 
+      message: 'This is an API endpoint. Please use POST method with the required parameters.' 
+    });
+  }
+  
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
-    const { businessName, lineOfBusiness } = req.body;
+    // Log environment variables (without the actual values for security)
+    console.log('API Key exists:', !!process.env.BN_COMPLIANCE_API_KEY);
+    console.log('API URL exists:', !!process.env.BN_COMPLIANCE_API_URL);
+
+    const { businessName, lineOfBusiness } = req.body || {};
     
     // Validate input
     if (!businessName || !lineOfBusiness) {
-      return res.status(400).json({ error: 'Business name and type are required' });
+      return res.status(400).json({ 
+        error: 'Business name and type are required',
+        receivedData: { hasBusinessName: !!businessName, hasLineOfBusiness: !!lineOfBusiness }
+      });
     }
 
-    // Your API key and URL are now securely stored server-side
-    const apiKey = process.env.BN_COMPLIANCE_API_KEY;
-    const apiUrl = process.env.BN_COMPLIANCE_API_URL;
-
-    // Make the API request from the server
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': apiKey,
-        'Accept': 'application/json',
-        'X_API_KEY': apiKey
-      },
-      body: JSON.stringify({
-        proposedName: businessName,
-        lineOfBusiness: lineOfBusiness
-      })
-    });
-
-    const data = await response.json();
-    
-    // Return the API response to the client
-    return res.status(200).json(data);
+    // Rest of your code...
   } catch (error) {
     console.error('Error in API proxy:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ 
+      error: 'Internal server error', 
+      message: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 }
-I
