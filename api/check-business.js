@@ -1,30 +1,19 @@
 import fetch from 'node-fetch';
 
 export default async function handler(req, res) {
-  // CORS configuration
-  // Allow multiple origins if needed
-  const allowedOrigins = [
-    'https://idara.webflow.io',
-    'http://localhost:3000',  // for local development
-    'https://your-production-domain.com'
-  ];
+  // CORS Configuration
+  const ALLOWED_ORIGIN = 'https://idara.webflow.io';
 
-  const origin = req.headers.origin;
-  
-  // Check if the origin is in the allowed list
-  if (allowedOrigins.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-  }
-
-  // Additional CORS headers
+  // Handle CORS Preflight
   res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+  res.setHeader('Access-Control-Allow-Origin', ALLOWED_ORIGIN);
+  res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
   res.setHeader(
     'Access-Control-Allow-Headers', 
     'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
   );
 
-  // Handle preflight requests
+  // Immediately respond to OPTIONS requests
   if (req.method === 'OPTIONS') {
     res.status(200).end();
     return;
@@ -32,30 +21,27 @@ export default async function handler(req, res) {
 
   // Ensure only POST requests are processed
   if (req.method !== 'POST') {
-    res.setHeader('Allow', ['POST']);
-    res.status(405).end(`Method ${req.method} Not Allowed`);
+    res.status(405).json({ error: 'Method Not Allowed' });
     return;
   }
 
   try {
-    // Detailed logging for debugging
-    console.log('Received request body:', req.body);
-    console.log('Environment variables:');
-    console.log('API Key exists:', !!process.env.BN_COMPLIANCE_API_KEY);
-    console.log('API URL exists:', !!process.env.BN_COMPLIANCE_API_URL);
+    // Robust body parsing
+    const body = typeof req.body === 'string' 
+      ? JSON.parse(req.body) 
+      : req.body;
 
-    // Parsing request body (important for Vercel)
-    const { businessName, lineOfBusiness } = JSON.parse(req.body);
-    
+    const { businessName, lineOfBusiness } = body;
+
     // Input validation
     if (!businessName || !lineOfBusiness) {
       return res.status(400).json({ 
-        error: 'Business name and type are required',
+        error: 'Business name and business type are required',
         receivedData: { businessName, lineOfBusiness }
       });
     }
 
-    // Make external API call
+    // External API call
     const apiResponse = await fetch(process.env.BN_COMPLIANCE_API_URL, {
       method: 'POST',
       headers: {
@@ -70,20 +56,17 @@ export default async function handler(req, res) {
       })
     });
 
-    // Parse the API response
     const data = await apiResponse.json();
 
-    // Return the parsed data
+    // Return successful response
     return res.status(200).json(data);
 
   } catch (error) {
-    console.error('Detailed error:', error);
+    console.error('Server Error:', error);
 
-    // Improved error response
     return res.status(500).json({ 
-      error: 'Internal server error', 
+      error: 'Internal Server Error', 
       message: error.message,
-      // Only show stack trace in development
       ...(process.env.NODE_ENV === 'development' && { stack: error.stack })
     });
   }
